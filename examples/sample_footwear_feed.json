@@ -1,0 +1,32 @@
+[
+  {
+    "sku": "CHL-BT-101",
+    "title": "Leather Chelsea Boots Tan Brown",
+    "description": "Handcrafted full grain leather chelsea boots with elastic side gusset and crepe sole.",
+    "category": "Footwear > Boots",
+    "price": 180.00,
+    "currency": "USD",
+    "brand": "Sovereign Boot Co",
+    "image_url": "https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=1200&q=80"
+  },
+  {
+    "sku": "RN-SN-102",
+    "title": "Minimalist White Leather Low Top Sneakers",
+    "description": "Italian calfskin leather tennis sneakers with cupsole construction and waxed laces.",
+    "category": "Footwear > Sneakers",
+    "price": 135.00,
+    "currency": "USD",
+    "brand": "Kite Studios",
+    "image_url": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=1200&q=80"
+  },
+  {
+    "sku": "TRK-RN-103",
+    "title": "Trail Runner Mesh Waterproof Hiking Shoes",
+    "description": "Breathable technical mesh trail running shoes with Vibram lugged rubber grip.",
+    "category": "Footwear > Outdoor",
+    "price": 150.00,
+    "currency": "USD",
+    "brand": "Vanguard Peak",
+    "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80"
+  }
+]
