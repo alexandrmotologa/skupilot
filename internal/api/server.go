@@ -40,6 +40,7 @@ func NewServer(db *store.DB, eng *engine.Engine, webFS fs.FS) *Server {
 
 	mux.HandleFunc("GET /api/batches/{id}/products", env.ListProductsHandler)
 	mux.HandleFunc("GET /api/products/{id}", env.GetProductHandler)
+	mux.HandleFunc("GET /api/products/{id}/image", env.ProductImageHandler)
 	mux.HandleFunc("PATCH /api/products/{id}", env.UpdateProductHandler)
 	mux.HandleFunc("POST /api/products/{id}/auto-fix-image", env.AutoFixImageHandler)
 	mux.HandleFunc("GET /api/products/{id}/copy-styles", env.CopyStylesHandler)

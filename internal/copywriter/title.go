@@ -20,7 +20,7 @@ var bannedPromotionalPhrases = []string{
 func GenerateA9Title(raw domain.RawFeedItem, attr domain.ExtractedAttributes) string {
 	brand := strings.TrimSpace(raw.Brand)
 	if brand == "" {
-		brand = "Craftsman"
+		brand = "Generic"
 	}
 
 	target := detectTargetGender(raw.Title, raw.Category)

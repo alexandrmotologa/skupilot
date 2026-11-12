@@ -1,8 +1,64 @@
-# skupilot
+<p align="center">
+  <img src="docs/images/logo.png?raw=true" alt="skupilot Logo" width="130" style="border-radius: 24px;" />
+</p>
 
-> Autonomous Multimodal E-Commerce Catalog Enrichment and Marketplace Compliance Engine
+<h1 align="center">skupilot</h1>
+
+<p align="center">
+  <strong>Autonomous Multimodal E-Commerce Catalog Enrichment and Marketplace Compliance Engine</strong>
+</p>
+
+<p align="center">
+  <a href="#the-problem">Problem</a> •
+  <a href="#studio-tour">Studio Tour</a> •
+  <a href="#what-skupilot-does">Features</a> •
+  <a href="#architecture-overview">Architecture</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#documentation">Docs</a>
+</p>
+
+---
 
 skupilot is a self-hosted single-binary Go service with an embedded React 19 merchandising studio. It automates catalog ingestion, multimodal image auditing, attribute extraction, and marketplace copywriting for high-volume e-commerce brands, distributors, and multi-vendor marketplaces.
+
+---
+
+## Studio Tour
+
+### Live Merchandising Studio & Interactive Flow
+skupilot features a self-contained web studio compiled directly into the Go executable via Go embed. It provides instant visual feedback, batch progress streaming via Server-Sent Events (SSE), and deep inspection modals.
+
+<p align="center">
+  <img src="docs/images/skupilot_demo.gif?raw=true" alt="skupilot Live Demo Flow" width="95%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
+
+### Merchandising Studio Dashboard
+The desktop workspace provides real-time health metrics, listing pass rates, quality score distributions, and defect-type quick filters across thousands of SKUs.
+
+<p align="center">
+  <img src="docs/images/skupilot_dashboard.png?raw=true" alt="skupilot Desktop Merchandising Studio" width="95%" style="border-radius: 8px;" />
+</p>
+
+### Multimodal Inspection & Algorithmic Copywriting Modal
+Audit individual products with pixel-level RGB 255 compliance measurements, VLM-extracted attributes (materials, cut, neckline, closure), Amazon A9 formulaic titles, and 5 benefit-driven feature bullets with live character counters and style switching.
+
+<p align="center">
+  <img src="docs/images/skupilot_audit_modal.png?raw=true" alt="skupilot Product Inspection Modal" width="95%" style="border-radius: 8px;" />
+</p>
+
+### 1-Click Multi-Channel Sync
+Export compliant feeds directly to Shopify Admin API (GraphQL mutations with metafields), Amazon Inventory Loader (.tsv flat files), Google Merchant Center RSS 2.0 (XML), or Master PIM CSV.
+
+<p align="center">
+  <img src="docs/images/skupilot_channel_export.png?raw=true" alt="skupilot Channel Export Modal" width="95%" style="border-radius: 8px;" />
+</p>
+
+### Responsive Mobile Interface
+The React 19 studio adapts dynamically to any viewport width, offering mobile inventory management on phones and tablets.
+
+<p align="center">
+  <img src="docs/images/skupilot_mobile.png?raw=true" alt="skupilot Mobile Studio Viewport" width="380" style="border-radius: 8px;" />
+</p>
 
 ---
 
@@ -14,6 +70,8 @@ High-volume catalog ingestion faces recurring operational bottlenecks:
 - Subpar Conversion Copy: Raw supplier titles and descriptions are often unformatted, keyword-stuffed strings that reduce customer trust and search rank.
 - Manual Labor Costs: Formatting new inventory manually costs between $5 and $15 per SKU and introduces delays.
 
+---
+
 ## What skupilot Does
 
 1. High-Throughput Catalog Ingestion: Streams large CSV, TSV, JSON, and Shopify product dumps without buffering entire datasets into memory.
@@ -22,20 +80,24 @@ High-volume catalog ingestion faces recurring operational bottlenecks:
    - Verifies resolution zoom readiness (minimum 1000 x 1000 pixels).
    - Detects edge density and high-contrast watermarks or text overlays.
    - Validates aspect ratios against marketplace square standards (0.8 to 1.25).
-3. Multimodal VLM Attribute Extraction:
+3. Automated Image Remediation:
+   - Whitens non-compliant perimeter pixels to pure RGB 255 with smooth edge alpha transitions.
+   - Centers and pads images onto a 1000 x 1000 px square canvas with zero distortion.
+4. Multimodal VLM Attribute Extraction:
    - Uses Vision-Language Models (Gemini 1.5/2.5 Flash, OpenAI GPT-4o-mini) and an offline computer vision heuristic engine to inspect product photos.
    - Extracts fabric composition, garment cut, collar type, neckline, closure mechanism, and exact hex color codes directly from pixels.
-4. Algorithmic Copywriting & Quality Scoring:
+5. Algorithmic Copywriting & Quality Scoring:
    - Formulates Amazon A9 compliant titles between 150 and 200 characters, filtering prohibited promotional claims.
    - Synthesizes 5 structured, benefit-driven feature bullets.
    - Generates clean semantic HTML product descriptions.
    - Resolves Google Product Taxonomy numeric IDs and breadcrumb paths.
    - Computes a comprehensive Listing Quality Scorecard (0 to 100).
-5. 1-Click Multi-Channel Sync:
+6. 1-Click Multi-Channel Sync:
    - Publishes directly to the Shopify Admin API using GraphQL mutations and custom metafields.
    - Generates Amazon Inventory Loader flat files (.tsv).
    - Exports Google Merchant Center product XML feeds.
-6. Embedded React 19 Studio:
+   - Outputs universal Master PIM CSV files with 31 enriched columns.
+7. Embedded React 19 Studio:
    - Single-binary deployment with zero CGO dependencies (pure Go SQLite).
    - Merchandising studio UI with real-time SSE progress streaming.
 
@@ -63,7 +125,8 @@ High-volume catalog ingestion faces recurring operational bottlenecks:
         |  - RGB 255 Pure White Check   |   |  - Fabric & Material Detect   |
         |  - Zoom Resolution >= 1000px  |   |  - Cut, Fit, & Silhouette     |
         |  - Watermark & Overlay Math   |   |  - Exact Hex & Color Family   |
-        +-------------------------------+   +-------------------------------+
+        |  - Auto-Whiten & 1:1 Padding  |   +-------------------------------+
+        +-------------------------------+                   |
                         |                                   |
                         +-----------------+-----------------+
                                           |
@@ -74,6 +137,7 @@ High-volume catalog ingestion faces recurring operational bottlenecks:
                       |  - 5 Benefit-Driven Feature Bullets   |
                       |  - Google Taxonomy Category Mapping   |
                       |  - Listing Quality Scorecard (0-100)  |
+                      |  - Multi-Style Switcher (A9, D2C, GG) |
                       +---------------------------------------+
                                           |
                         +-----------------+-----------------+
@@ -84,6 +148,7 @@ High-volume catalog ingestion faces recurring operational bottlenecks:
         |  - Shopify GraphQL Admin API  |   |  - Visual Merchandising Grid  |
         |  - Amazon Flat File (.tsv)    |   |  - Image Defect Diagnostics   |
         |  - Google Merchant XML Feed   |   |  - Live SSE Batch Progress    |
+        |  - Master PIM CSV Export      |   |  - Interactive Analytics      |
         +-------------------------------+   +-------------------------------+
 ```
 
@@ -194,7 +259,7 @@ Environment variables can be provided in a `.env` file or exported directly:
 
 ## Testing
 
-Run the full test suite with coverage:
+Run the full test suite with race detection:
 ```bash
 go test -v -race -coverprofile=coverage.txt ./...
 ```

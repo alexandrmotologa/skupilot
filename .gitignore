@@ -44,5 +44,6 @@ Thumbs.db
 # Exports & Temporary Feeds
 *.tsv
 *.xml
+catalog_media/
 export/
 tmp/

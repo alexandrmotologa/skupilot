@@ -141,10 +141,7 @@ func (e *Engine) EnrichSingleItem(ctx context.Context, batchID string, raw domai
 	product.QualityScore = scorecard.TotalScore
 
 	if auditRep == nil && product.ImageURL != "" {
-		// Mock baseline if network failed during test
-		product.ImageZoomReady = true
-		product.ImageWhiteBGScore = 0.99
-		product.ImageComplianceStatus = domain.CompliancePass
+		product.ImageComplianceStatus = domain.ComplianceWarn
 	}
 
 	return product, nil

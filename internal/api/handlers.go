@@ -4,7 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image/png"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -347,7 +351,19 @@ func (env *ServerEnv) AutoFixImageHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Apply Auto-Whiten & 1000x1000 square padding
-	_, fixedReport := vision.AutoWhitenAndPad(img, 1000)
+	fixedImg, fixedReport := vision.AutoWhitenAndPad(img, 1000)
+
+	// Save remediated image to local catalog_media directory
+	mediaDir := "catalog_media"
+	_ = os.MkdirAll(mediaDir, 0755)
+	mediaPath := filepath.Join(mediaDir, fmt.Sprintf("%s.png", p.ID))
+
+	outFile, err := os.Create(mediaPath)
+	if err == nil {
+		_ = png.Encode(outFile, fixedImg)
+		_ = outFile.Close()
+		p.ImageURL = fmt.Sprintf("/api/products/%s/image", p.ID)
+	}
 
 	// Update product metrics
 	p.ImageWidth = fixedReport.Width
@@ -372,6 +388,23 @@ func (env *ServerEnv) AutoFixImageHandler(w http.ResponseWriter, r *http.Request
 		"compliance": fixedReport,
 		"message":    "Image remediated to pure white RGB 255 and padded to 1000x1000px square",
 	})
+}
+
+// ProductImageHandler serves the remediated or cached local image for a product.
+func (env *ServerEnv) ProductImageHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	mediaPath := filepath.Join("catalog_media", fmt.Sprintf("%s.png", id))
+
+	file, err := os.Open(mediaPath)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "remediated image not found")
+		return
+	}
+	defer file.Close()
+
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	_, _ = io.Copy(w, file)
 }
 
 // CopyStylesHandler generates and returns all 3 copy style variants for a product.

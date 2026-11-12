@@ -60,9 +60,6 @@ func GenerateAmazonFlatFile(products []domain.Product) []byte {
 		}
 
 		priceStr := fmt.Sprintf("%.2f", p.RawPrice)
-		if p.RawPrice == 0 {
-			priceStr = "49.99"
-		}
 
 		row := []string{
 			cleanTSV(p.RawSKU),

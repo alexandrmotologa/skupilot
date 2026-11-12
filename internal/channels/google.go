@@ -59,10 +59,11 @@ func GenerateGoogleShoppingXML(products []domain.Product, feedTitle, feedURL str
 			desc = strings.Join(p.BulletPoints, " ")
 		}
 
-		priceStr := fmt.Sprintf("%.2f %s", p.RawPrice, p.Currency)
-		if p.RawPrice == 0 {
-			priceStr = "49.99 USD"
+		currency := p.Currency
+		if currency == "" {
+			currency = "USD"
 		}
+		priceStr := fmt.Sprintf("%.2f %s", p.RawPrice, currency)
 
 		category := p.GoogleTaxonomyPath
 		if category == "" && p.GoogleTaxonomyID > 0 {
