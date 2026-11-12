@@ -45,10 +45,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <div>
         {/* Image & Overlay Indicators */}
-        <div className="relative aspect-square bg-slate-950 overflow-hidden flex items-center justify-center border-b border-slate-800/80">
+        <div
+          onClick={() => onInspect(product)}
+          className="relative aspect-square bg-slate-950 overflow-hidden flex items-center justify-center border-b border-slate-800/80 cursor-pointer"
+        >
           {/* Checkbox Selector */}
           {onToggleSelect && (
-            <div className="absolute top-2 left-2 z-30">
+            <div className="absolute top-2 left-2 z-30" onClick={(e) => e.stopPropagation()}>
               <input
                 type="checkbox"
                 checked={isSelected || false}

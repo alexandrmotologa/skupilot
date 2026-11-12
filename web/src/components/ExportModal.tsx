@@ -74,41 +74,41 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         </div>
 
         {/* Channel Selector Tabs */}
-        <div className="px-6 pt-4 border-b border-slate-800 flex items-center gap-4 text-xs font-semibold">
+        <div className="px-6 pt-4 border-b border-slate-800 flex items-center gap-4 text-xs font-semibold overflow-x-auto">
           <button
             onClick={() => { setActiveTab('shopify'); setResult(null); }}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap shrink-0 ${
               activeTab === 'shopify' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingBag className="w-4 h-4 shrink-0" />
             <span>Shopify GraphQL</span>
           </button>
           <button
             onClick={() => { setActiveTab('amazon'); setResult(null); }}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap shrink-0 ${
               activeTab === 'amazon' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <FileSpreadsheet className="w-4 h-4" />
+            <FileSpreadsheet className="w-4 h-4 shrink-0" />
             <span>Amazon TSV Flat File</span>
           </button>
           <button
             onClick={() => { setActiveTab('google'); setResult(null); }}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap shrink-0 ${
               activeTab === 'google' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Globe className="w-4 h-4" />
+            <Globe className="w-4 h-4 shrink-0" />
             <span>Google Shopping XML</span>
           </button>
           <button
             onClick={() => { setActiveTab('csv'); setResult(null); }}
-            className={`pb-3 flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap shrink-0 ${
               activeTab === 'csv' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4 shrink-0" />
             <span>Enriched PIM CSV</span>
           </button>
         </div>

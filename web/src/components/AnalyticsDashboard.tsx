@@ -22,30 +22,30 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* Header bar with toggle */}
       <div
         onClick={onToggle}
-        className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition select-none"
+        className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/40 transition select-none"
       >
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
-            <BarChart3 className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20 shrink-0">
+            <BarChart3 className="w-3.5 h-3.5 shrink-0" />
           </div>
-          <div>
-            <span className="text-xs font-bold text-slate-100 uppercase tracking-wider">
-              Catalog Quality & Compliance Analytics
+          <div className="min-w-0">
+            <span className="text-xs font-bold text-slate-100 uppercase tracking-wider truncate block sm:inline">
+              Catalog Quality Analytics
             </span>
-            <span className="text-[11px] text-slate-400 ml-2">
-              ({analytics.total_products} SKUs analyzed)
+            <span className="text-[11px] text-slate-400 ml-1 sm:ml-2 hidden sm:inline whitespace-nowrap">
+              ({analytics.total_products} SKUs)
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-slate-400">Compliance Rate:</span>
+        <div className="flex items-center gap-3 sm:gap-4 text-xs shrink-0">
+          <div className="flex items-center gap-1.5 whitespace-nowrap">
+            <span className="text-slate-400 hidden xs:inline">Compliance:</span>
             <span className="font-mono font-bold text-emerald-400">
               {analytics.compliance_rate.toFixed(1)}%
             </span>
           </div>
-          <button className="text-slate-400 hover:text-slate-200 p-1">
+          <button className="text-slate-400 hover:text-slate-200 p-1 shrink-0">
             {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
