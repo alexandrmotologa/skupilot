@@ -80,3 +80,33 @@ export async function exportShopify(batchId: string, params: { store_domain: str
   }
   return res.json();
 }
+
+export async function fetchBatchAnalytics(batchId: string) {
+  const res = await fetch(`${BASE_URL}/batches/${batchId}/analytics`);
+  if (!res.ok) throw new Error('Failed to fetch analytics');
+  return res.json();
+}
+
+export async function bulkUpdateStatus(batchId: string, productIds: string[], status: string) {
+  const res = await fetch(`${BASE_URL}/batches/${batchId}/bulk-status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_ids: productIds, status }),
+  });
+  if (!res.ok) throw new Error('Failed to bulk update status');
+  return res.json();
+}
+
+export async function autoFixProductImage(productId: string) {
+  const res = await fetch(`${BASE_URL}/products/${productId}/auto-fix-image`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to auto-fix image');
+  return res.json();
+}
+
+export async function fetchCopyStyles(productId: string) {
+  const res = await fetch(`${BASE_URL}/products/${productId}/copy-styles`);
+  if (!res.ok) throw new Error('Failed to fetch copy styles');
+  return res.json();
+}

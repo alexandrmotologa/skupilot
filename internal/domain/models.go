@@ -155,6 +155,34 @@ type ExportResult struct {
 	Details       string `json:"details,omitempty"`
 }
 
+// BatchAnalytics provides aggregated compliance and quality diagnostics for a batch.
+type BatchAnalytics struct {
+	BatchID             string  `json:"batch_id"`
+	TotalProducts       int     `json:"total_products"`
+	CompliantCount      int     `json:"compliant_count"`
+	WarnCount           int     `json:"warn_count"`
+	FailCount           int     `json:"fail_count"`
+	ComplianceRate      float64 `json:"compliance_rate"`
+	AverageQualityScore float64 `json:"average_quality_score"`
+
+	// Issues Breakdown
+	NonWhiteBGCount     int `json:"non_white_bg_count"`
+	LowResolutionCount  int `json:"low_resolution_count"`
+	WatermarkCount      int `json:"watermark_count"`
+	MissingMaterialCount int `json:"missing_material_count"`
+	MissingFitCount     int `json:"missing_fit_count"`
+
+	// Status Distribution
+	PendingCount  int `json:"pending_count"`
+	ApprovedCount int `json:"approved_count"`
+	RejectedCount int `json:"rejected_count"`
+
+	// Channel Readiness
+	AmazonReadyCount  int `json:"amazon_ready_count"`
+	ShopifyReadyCount int `json:"shopify_ready_count"`
+	GoogleReadyCount  int `json:"google_ready_count"`
+}
+
 // MarshalAttributesHelper serializes attributes to JSON string for SQLite storage.
 func MarshalAttributes(attr ExtractedAttributes) (string, error) {
 	b, err := json.Marshal(attr)

@@ -34,15 +34,20 @@ func NewServer(db *store.DB, eng *engine.Engine, webFS fs.FS) *Server {
 	mux.HandleFunc("POST /api/batches/upload", env.UploadBatchHandler)
 	mux.HandleFunc("GET /api/batches/{id}", env.GetBatchHandler)
 	mux.HandleFunc("GET /api/batches/{id}/events", env.BatchSSEHandler)
+	mux.HandleFunc("GET /api/batches/{id}/analytics", env.GetBatchAnalyticsHandler)
 	mux.HandleFunc("POST /api/batches/{id}/approve-all", env.BatchApproveAllHandler)
+	mux.HandleFunc("POST /api/batches/{id}/bulk-status", env.BulkStatusHandler)
 
 	mux.HandleFunc("GET /api/batches/{id}/products", env.ListProductsHandler)
 	mux.HandleFunc("GET /api/products/{id}", env.GetProductHandler)
 	mux.HandleFunc("PATCH /api/products/{id}", env.UpdateProductHandler)
+	mux.HandleFunc("POST /api/products/{id}/auto-fix-image", env.AutoFixImageHandler)
+	mux.HandleFunc("GET /api/products/{id}/copy-styles", env.CopyStylesHandler)
 
 	mux.HandleFunc("POST /api/batches/{id}/export/shopify", env.ExportShopifyHandler)
 	mux.HandleFunc("GET /api/batches/{id}/export/amazon", env.ExportAmazonHandler)
 	mux.HandleFunc("GET /api/batches/{id}/export/google", env.ExportGoogleHandler)
+	mux.HandleFunc("GET /api/batches/{id}/export/csv", env.ExportCSVHandler)
 
 	// Embedded static file serving for React Merchandising Studio
 	if webFS != nil {

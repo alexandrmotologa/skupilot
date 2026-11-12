@@ -122,6 +122,36 @@ func TestBatchAndProductsEndpoints(t *testing.T) {
 		t.Errorf("expected 200 OK for patch, got %d", patchResp.StatusCode)
 	}
 
+	// Test GET /api/batches/{id}/analytics
+	anResp, err := http.Get(ts.URL + "/api/batches/" + batch.ID + "/analytics")
+	if err != nil {
+		t.Fatalf("failed getting analytics: %v", err)
+	}
+	defer anResp.Body.Close()
+	if anResp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for analytics, got %d", anResp.StatusCode)
+	}
+
+	// Test GET /api/products/{id}/copy-styles
+	csResp, err := http.Get(ts.URL + "/api/products/" + p.ID + "/copy-styles")
+	if err != nil {
+		t.Fatalf("failed getting copy styles: %v", err)
+	}
+	defer csResp.Body.Close()
+	if csResp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for copy styles, got %d", csResp.StatusCode)
+	}
+
+	// Test GET /api/batches/{id}/export/csv
+	csvResp, err := http.Get(ts.URL + "/api/batches/" + batch.ID + "/export/csv")
+	if err != nil {
+		t.Fatalf("failed exporting csv: %v", err)
+	}
+	defer csvResp.Body.Close()
+	if csvResp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for csv export, got %d", csvResp.StatusCode)
+	}
+
 	// Test GET /api/batches/{id}/export/amazon
 	amzResp, err := http.Get(ts.URL + "/api/batches/" + batch.ID + "/export/amazon")
 	if err != nil {

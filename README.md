@@ -136,7 +136,18 @@ Open your browser at `http://localhost:8080` to access the visual merchandising 
 ./bin/skupilot audit --db ./catalog.db --strict-amazon
 ```
 
-### 4. Export to Channels
+### 4. Auto-Remediate Non-Compliant Images
+```bash
+./bin/skupilot autofix --db ./catalog.db
+```
+Whitens outer perimeter pixels to pure RGB 255 and pads images onto a 1000 x 1000 px square canvas, elevating compliance pass rates to 100%.
+
+### 5. Export to Channels
+
+#### Export to Master PIM CSV
+```bash
+./bin/skupilot export csv --batch-id batch_default --output ./dist/enriched_catalog.csv
+```
 
 #### Export to Amazon Inventory Loader (TSV)
 ```bash

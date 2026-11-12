@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, ShieldCheck, Save, Check, RefreshCw, Sparkles, Layers, Maximize2 } from 'lucide-react';
-import { Product } from '../types';
+import React, { useState, useEffect } from 'react';
+import { X, ShieldCheck, Save, RefreshCw, Sparkles, Layers, Maximize2, Wand2, ShoppingBag, Globe, Zap } from 'lucide-react';
+import { Product, StyleVariant } from '../types';
+import { autoFixProductImage, fetchCopyStyles } from '../lib/api';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -15,6 +16,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   if (!product) return null;
 
+  const [currentProduct, setCurrentProduct] = useState<Product>(product);
   const [title, setTitle] = useState(product.optimized_title || product.raw_title);
   const [bullets, setBullets] = useState<string[]>(
     product.bullet_points.length === 5
@@ -24,7 +26,23 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [attributes, setAttributes] = useState(product.extracted_attributes);
   const [status, setStatus] = useState(product.publication_status);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'copy' | 'html' | 'raw'>('copy');
+  const [isAutoFixing, setIsAutoFixing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'copy' | 'html'>('copy');
+  const [activeCopyStyle, setActiveCopyStyle] = useState<'AMAZON_A9' | 'SHOPIFY_EDITORIAL' | 'GOOGLE_SHOPPING'>('AMAZON_A9');
+  const [styleVariants, setStyleVariants] = useState<Record<string, StyleVariant> | null>(null);
+
+  useEffect(() => {
+    setCurrentProduct(product);
+    setTitle(product.optimized_title || product.raw_title);
+    setBullets(product.bullet_points.length === 5 ? product.bullet_points : [...product.bullet_points, '', '', '', '', ''].slice(0, 5));
+    setAttributes(product.extracted_attributes);
+    setStatus(product.publication_status);
+
+    // Fetch copy style variants
+    fetchCopyStyles(product.id)
+      .then((data) => setStyleVariants(data))
+      .catch((err) => console.error('Failed loading styles', err));
+  }, [product]);
 
   const titleLength = title.length;
   const isTitleOptimal = titleLength >= 150 && titleLength <= 200;
@@ -40,11 +58,32 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setAttributes((prev) => ({ ...prev, [key]: val }));
   };
 
+  const handleApplyStyle = (styleKey: 'AMAZON_A9' | 'SHOPIFY_EDITORIAL' | 'GOOGLE_SHOPPING') => {
+    setActiveCopyStyle(styleKey);
+    if (styleVariants && styleVariants[styleKey]) {
+      const v = styleVariants[styleKey];
+      setTitle(v.title);
+      setBullets(v.bullets);
+    }
+  };
+
+  const handleAutoFix = async () => {
+    setIsAutoFixing(true);
+    try {
+      const res = await autoFixProductImage(currentProduct.id);
+      setCurrentProduct(res.product);
+    } catch (err) {
+      console.error('Failed auto-fixing image', err);
+    } finally {
+      setIsAutoFixing(false);
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
       const updated: Product = {
-        ...product,
+        ...currentProduct,
         optimized_title: title,
         bullet_points: bullets,
         extracted_attributes: attributes,
@@ -64,10 +103,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 font-bold">
-              {product.raw_sku}
+              {currentProduct.raw_sku}
             </span>
             <h3 className="font-bold text-slate-100 text-sm truncate max-w-md">
-              {product.raw_title}
+              {currentProduct.raw_title}
             </h3>
           </div>
 
@@ -116,17 +155,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Image Preview & Zoom Container */}
             <div className="relative aspect-square rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center p-2 group">
               <img
-                src={product.image_url}
-                alt={product.raw_title}
+                src={currentProduct.image_url}
+                alt={currentProduct.raw_title}
                 className="w-full h-full object-contain"
               />
               <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 backdrop-blur font-mono flex items-center gap-1">
                 <Maximize2 className="w-3 h-3 text-sky-400" />
-                {product.image_width}x{product.image_height}px
+                {currentProduct.image_width}x{currentProduct.image_height}px
               </div>
             </div>
 
-            {/* Image Compliance Scorecard */}
+            {/* Image Compliance Scorecard with Auto-Fix Button */}
             <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -135,12 +174,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </h4>
                 <span
                   className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
-                    product.image_compliance_status === 'PASS'
+                    currentProduct.image_compliance_status === 'PASS'
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                       : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                   }`}
                 >
-                  {product.image_compliance_status}
+                  {currentProduct.image_compliance_status}
                 </span>
               </div>
 
@@ -148,7 +187,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
                   <div className="text-slate-400 text-[11px]">RGB 255 Whiteness</div>
                   <div className="font-mono font-bold text-slate-100 text-sm mt-0.5">
-                    {(product.image_white_bg_score * 100).toFixed(1)}%
+                    {(currentProduct.image_white_bg_score * 100).toFixed(1)}%
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">Req: &gt;= 98.5%</div>
                 </div>
@@ -156,19 +195,31 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
                   <div className="text-slate-400 text-[11px]">Amazon Zoom Ready</div>
                   <div className="font-mono font-bold text-slate-100 text-sm mt-0.5 flex items-center gap-1">
-                    {product.image_zoom_ready ? (
-                      <span className="text-emerald-400 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> Pass
-                      </span>
+                    {currentProduct.image_zoom_ready ? (
+                      <span className="text-emerald-400 font-bold">Pass</span>
                     ) : (
-                      <span className="text-rose-400 flex items-center gap-1">
-                        <X className="w-3.5 h-3.5" /> Fails &lt;1000px
-                      </span>
+                      <span className="text-rose-400 font-bold">Fails &lt;1000px</span>
                     )}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">Min: 1000x1000</div>
                 </div>
               </div>
+
+              {/* 1-Click Auto-Remediate Image Button */}
+              {currentProduct.image_compliance_status !== 'PASS' && (
+                <button
+                  onClick={handleAutoFix}
+                  disabled={isAutoFixing}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 text-xs font-bold transition disabled:opacity-50"
+                >
+                  {isAutoFixing ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Auto-Fix Background & Pad (1000x1000)</span>
+                </button>
+              )}
             </div>
 
             {/* Extracted Technical Attributes */}
@@ -254,27 +305,44 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Listing Copy & Quality Score (7 cols) */}
+          {/* Right Column: Listing Copy & Multi-Style Selector (7 cols) */}
           <div className="lg:col-span-7 space-y-5">
-            {/* Quality Scorecard Banner */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                  Listing Quality Score
-                </span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-2xl font-bold font-mono text-emerald-400">
-                    {product.quality_score}%
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    Amazon A9 & Google Shopping Compliant
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Ready for Sync
-                </span>
+            {/* Style Variant Switcher Bar */}
+            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-slate-400 font-semibold px-2 uppercase tracking-wider text-[10px]">
+                Copywriting Style:
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleApplyStyle('AMAZON_A9')}
+                  className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold transition ${
+                    activeCopyStyle === 'AMAZON_A9'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Zap className="w-3 h-3 text-amber-400" /> Amazon A9
+                </button>
+                <button
+                  onClick={() => handleApplyStyle('SHOPIFY_EDITORIAL')}
+                  className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold transition ${
+                    activeCopyStyle === 'SHOPIFY_EDITORIAL'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <ShoppingBag className="w-3 h-3 text-emerald-400" /> Shopify D2C
+                </button>
+                <button
+                  onClick={() => handleApplyStyle('GOOGLE_SHOPPING')}
+                  className={`px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold transition ${
+                    activeCopyStyle === 'GOOGLE_SHOPPING'
+                      ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Globe className="w-3 h-3 text-sky-400" /> Google Specs
+                </button>
               </div>
             </div>
 
@@ -283,18 +351,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <Layers className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
               <span className="text-slate-400">Google Category:</span>
               <span className="text-slate-200 font-medium truncate">
-                {product.google_taxonomy_path || 'Apparel & Accessories'}
+                {currentProduct.google_taxonomy_path || 'Apparel & Accessories'}
               </span>
               <span className="font-mono text-slate-500 text-[10px]">
-                (ID {product.google_taxonomy_id})
+                (ID {currentProduct.google_taxonomy_id})
               </span>
             </div>
 
-            {/* Amazon A9 Title Synthesizer */}
+            {/* Title Synthesizer */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Amazon A9 Formulated Title
+                  Product Title
                 </label>
                 <div className="flex items-center gap-1.5 font-mono text-xs">
                   <span
@@ -322,9 +390,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* 5 Feature Bullets */}
             <div className="space-y-3">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between">
-                <span>5 Benefit-Driven Feature Bullets</span>
+                <span>Feature Bullets & Benefits</span>
                 <span className="text-[11px] font-normal text-slate-400">
-                  Amazon Seller Central Standard
+                  {bullets.length} Bullets Active
                 </span>
               </label>
 
@@ -374,12 +442,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {activeTab === 'copy' ? (
                 <div
                   className="prose prose-invert prose-sm max-w-none p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 max-h-48 overflow-y-auto"
-                  dangerouslySetInnerHTML={{ __html: product.seo_description_html }}
+                  dangerouslySetInnerHTML={{ __html: currentProduct.seo_description_html }}
                 />
               ) : (
                 <textarea
                   readOnly
-                  value={product.seo_description_html}
+                  value={currentProduct.seo_description_html}
                   rows={6}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-400 focus:outline-none"
                 />
@@ -391,7 +459,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Modal Footer */}
         <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
           <div className="text-xs text-slate-500">
-            Original Supplier Title: <span className="text-slate-400 italic">{product.raw_title}</span>
+            Original Supplier Title: <span className="text-slate-400 italic">{currentProduct.raw_title}</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -416,3 +484,4 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     </div>
   );
 };
+

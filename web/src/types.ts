@@ -82,3 +82,31 @@ export interface BatchProgressEvent {
   current_sku: string;
   product?: Product;
 }
+
+export interface BatchAnalytics {
+  batch_id: string;
+  total_products: number;
+  compliant_count: number;
+  warn_count: number;
+  fail_count: number;
+  compliance_rate: number;
+  average_quality_score: number;
+  non_white_bg_count: number;
+  low_resolution_count: number;
+  watermark_count: number;
+  missing_material_count: number;
+  missing_fit_count: number;
+  pending_count: number;
+  approved_count: number;
+  rejected_count: number;
+  amazon_ready_count: number;
+  shopify_ready_count: number;
+  google_ready_count: number;
+}
+
+export interface StyleVariant {
+  style: string;
+  title: string;
+  bullets: string[];
+  description_html: string;
+}

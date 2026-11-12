@@ -15,6 +15,7 @@ import (
 	"github.com/alexandrmotologa/skupilot/internal/api"
 	"github.com/alexandrmotologa/skupilot/internal/channels"
 	"github.com/alexandrmotologa/skupilot/internal/config"
+	"github.com/alexandrmotologa/skupilot/internal/copywriter"
 	"github.com/alexandrmotologa/skupilot/internal/domain"
 	"github.com/alexandrmotologa/skupilot/internal/engine"
 	"github.com/alexandrmotologa/skupilot/internal/feed"
@@ -39,6 +40,8 @@ func main() {
 		cmdEnrich(os.Args[2:])
 	case "audit":
 		cmdAudit(os.Args[2:])
+	case "autofix":
+		cmdAutoFix(os.Args[2:])
 	case "export":
 		cmdExport(os.Args[2:])
 	case "version", "-v", "--version":
@@ -62,7 +65,8 @@ Commands:
   serve      Start the web merchandising studio and REST API daemon
   enrich     Ingest and enrich a raw supplier feed CSV/JSON
   audit      Run marketplace image and copy compliance audit on database
-  export     Export enriched catalog to Shopify, Amazon, or Google Shopping
+  autofix    Auto-remediate non-compliant images to pure white RGB 255 & pad 1000px
+  export     Export enriched catalog to Shopify, Amazon, Google Shopping, or CSV
   version    Show version information
 
 Run 'skupilot <command> --help' for details on a specific command.
@@ -239,6 +243,68 @@ func cmdAudit(args []string) {
 	fmt.Printf("Summary: %d / %d compliant (%.1f%% compliance rate)\n\n", compliant, total, passRate)
 }
 
+func cmdAutoFix(args []string) {
+	cfg := config.Load()
+
+	fs := flag.NewFlagSet("autofix", flag.ExitOnError)
+	dbPath := fs.String("db", cfg.DBPath, "SQLite catalog database path")
+	batchID := fs.String("batch-id", "", "Batch ID to auto-fix (leave empty for all)")
+	_ = fs.Parse(args)
+
+	db, err := store.Open(*dbPath)
+	if err != nil {
+		log.Fatalf("Fatal: failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	products, _, err := db.ListProducts(store.ProductFilter{
+		BatchID: *batchID,
+		Limit:   500,
+	})
+	if err != nil {
+		log.Fatalf("Fatal: query failed: %v", err)
+	}
+
+	fmt.Printf("🪄 Running Automated Image Remediation on %d products...\n", len(products))
+	remediated := 0
+
+	for _, p := range products {
+		if p.ImageComplianceStatus == domain.CompliancePass && p.ImageZoomReady {
+			continue
+		}
+
+		if p.ImageURL == "" {
+			continue
+		}
+
+		_, img, err := vision.FetchAndAuditImage(context.Background(), nil, p.ImageURL)
+		if err != nil || img == nil {
+			continue
+		}
+
+		_, fixedReport := vision.AutoWhitenAndPad(img, 1000)
+
+		p.ImageWidth = fixedReport.Width
+		p.ImageHeight = fixedReport.Height
+		p.ImageZoomReady = fixedReport.ZoomReady
+		p.ImageWhiteBGScore = fixedReport.WhiteBGScore
+		p.ImageAspectRatio = fixedReport.AspectRatio
+		p.ImageWatermarkDetected = fixedReport.WatermarkDetected
+		p.ImageComplianceStatus = fixedReport.Status
+
+		scorecard := copywriter.CalculateQualityScorecard(&p)
+		p.QualityScore = scorecard.TotalScore
+
+		if err := db.UpdateProduct(&p); err == nil {
+			remediated++
+			fmt.Printf("  [Remediated] %s -> Whiteness: %.1f%% | Zoom: %dx%d (Score: %d%%)\n",
+				p.RawSKU, p.ImageWhiteBGScore*100, p.ImageWidth, p.ImageHeight, p.QualityScore)
+		}
+	}
+
+	fmt.Printf("\n✨ Successfully remediated %d images to Amazon compliance standard.\n", remediated)
+}
+
 func cmdExport(args []string) {
 	if len(args) < 1 {
 		fmt.Println("Usage: skupilot export <shopify|amazon|google> [flags]")
@@ -249,6 +315,33 @@ func cmdExport(args []string) {
 	channelType := strings.ToLower(args[0])
 
 	switch channelType {
+	case "csv":
+		fs := flag.NewFlagSet("export csv", flag.ExitOnError)
+		dbPath := fs.String("db", cfg.DBPath, "SQLite database path")
+		batchID := fs.String("batch-id", "", "Batch ID to export")
+		outputFile := fs.String("output", "enriched_catalog.csv", "Output CSV file path")
+		_ = fs.Parse(args[1:])
+
+		db, err := store.Open(*dbPath)
+		if err != nil {
+			log.Fatalf("Fatal: failed opening database: %v", err)
+		}
+		defer db.Close()
+
+		products, _, err := db.ListProducts(store.ProductFilter{BatchID: *batchID, Limit: 2000})
+		if err != nil {
+			log.Fatalf("Fatal: failed querying products: %v", err)
+		}
+
+		csvData, err := channels.GenerateEnrichedCSV(products)
+		if err != nil {
+			log.Fatalf("Fatal: failed generating CSV: %v", err)
+		}
+		if err := os.WriteFile(*outputFile, csvData, 0644); err != nil {
+			log.Fatalf("Fatal: failed writing file: %v", err)
+		}
+		fmt.Printf("Exported %d products to Master PIM CSV: %s\n", len(products), *outputFile)
+
 	case "amazon":
 		fs := flag.NewFlagSet("export amazon", flag.ExitOnError)
 		dbPath := fs.String("db", cfg.DBPath, "SQLite database path")

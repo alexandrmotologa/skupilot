@@ -16,7 +16,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 }) => {
   if (!isOpen || !batch) return null;
 
-  const [activeTab, setActiveTab] = useState<'shopify' | 'amazon' | 'google'>('shopify');
+  const [activeTab, setActiveTab] = useState<'shopify' | 'amazon' | 'google' | 'csv'>('shopify');
   const [storeDomain, setStoreDomain] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [publishStatus, setPublishStatus] = useState('DRAFT');
@@ -101,6 +101,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           >
             <Globe className="w-4 h-4" />
             <span>Google Shopping XML</span>
+          </button>
+          <button
+            onClick={() => { setActiveTab('csv'); setResult(null); }}
+            className={`pb-3 flex items-center gap-1.5 border-b-2 transition ${
+              activeTab === 'csv' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            <span>Enriched PIM CSV</span>
           </button>
         </div>
 
@@ -242,6 +251,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download Google XML</span>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Universal Enriched CSV Tab */}
+          {activeTab === 'csv' && (
+            <div className="space-y-4 text-xs">
+              <p className="text-slate-400">
+                Exports all enriched attributes, visual whiteness scores, A9 titles, 5 bullets, and Google Taxonomy IDs into a standardized Master PIM CSV.
+              </p>
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <div className="text-slate-300 font-semibold">Master PIM & ERP Enriched Feed</div>
+                <div className="text-[11px] text-slate-500">
+                  Compatible with Akeneo, Pimcore, Magento, WooCommerce, and custom databases
+                </div>
+              </div>
+              <div className="pt-2 flex justify-end">
+                <a
+                  href={`/api/batches/${batch.id}/export/csv`}
+                  download
+                  className="flex items-center gap-1.5 px-4 py-2 font-semibold rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 transition shadow-lg shadow-sky-500/20"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Master CSV</span>
                 </a>
               </div>
             </div>

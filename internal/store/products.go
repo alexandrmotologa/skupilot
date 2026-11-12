@@ -202,6 +202,97 @@ func (db *DB) UpdateProduct(p *domain.Product) error {
 	return err
 }
 
+// BulkUpdateProductStatus changes status for an explicit list of product IDs.
+func (db *DB) BulkUpdateProductStatus(ids []string, status domain.PublicationStatus) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids)+2)
+	args[0] = string(status)
+	args[1] = time.Now().UTC()
+
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i+2] = id
+	}
+
+	query := fmt.Sprintf(`
+	UPDATE products
+	SET publication_status = ?, updated_at = ?
+	WHERE id IN (%s)
+	`, strings.Join(placeholders, ","))
+
+	res, err := db.Exec(query, args...)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+// GetBatchAnalytics computes comprehensive compliance, issues, and readiness metrics.
+func (db *DB) GetBatchAnalytics(batchID string) (*domain.BatchAnalytics, error) {
+	analytics := &domain.BatchAnalytics{
+		BatchID: batchID,
+	}
+
+	query := `
+	SELECT
+		COUNT(*) as total,
+		SUM(CASE WHEN image_compliance_status = 'PASS' THEN 1 ELSE 0 END) as compliant,
+		SUM(CASE WHEN image_compliance_status = 'WARN' THEN 1 ELSE 0 END) as warns,
+		SUM(CASE WHEN image_compliance_status = 'FAIL' THEN 1 ELSE 0 END) as fails,
+		COALESCE(AVG(quality_score), 0) as avg_quality,
+		SUM(CASE WHEN image_white_bg_score < 0.985 THEN 1 ELSE 0 END) as non_white,
+		SUM(CASE WHEN image_zoom_ready = 0 THEN 1 ELSE 0 END) as low_res,
+		SUM(CASE WHEN image_watermark_detected = 1 THEN 1 ELSE 0 END) as watermark,
+		SUM(CASE WHEN publication_status = 'PENDING' THEN 1 ELSE 0 END) as pending,
+		SUM(CASE WHEN publication_status = 'APPROVED' THEN 1 ELSE 0 END) as approved,
+		SUM(CASE WHEN publication_status = 'REJECTED' THEN 1 ELSE 0 END) as rejected,
+		SUM(CASE WHEN image_compliance_status = 'PASS' AND quality_score >= 80 THEN 1 ELSE 0 END) as amz_ready,
+		SUM(CASE WHEN publication_status = 'APPROVED' THEN 1 ELSE 0 END) as shop_ready,
+		SUM(CASE WHEN google_taxonomy_id > 0 AND quality_score >= 70 THEN 1 ELSE 0 END) as goog_ready
+	FROM products
+	WHERE batch_id = ?
+	`
+	row := db.QueryRow(query, batchID)
+
+	var total, comp, warns, fails, nonWhite, lowRes, watermark, pending, approved, rejected, amzReady, shopReady, googReady sql.NullInt64
+	var avgQuality sql.NullFloat64
+
+	err := row.Scan(
+		&total, &comp, &warns, &fails, &avgQuality,
+		&nonWhite, &lowRes, &watermark,
+		&pending, &approved, &rejected,
+		&amzReady, &shopReady, &googReady,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed calculating batch analytics: %w", err)
+	}
+
+	analytics.TotalProducts = int(total.Int64)
+	analytics.CompliantCount = int(comp.Int64)
+	analytics.WarnCount = int(warns.Int64)
+	analytics.FailCount = int(fails.Int64)
+	analytics.NonWhiteBGCount = int(nonWhite.Int64)
+	analytics.LowResolutionCount = int(lowRes.Int64)
+	analytics.WatermarkCount = int(watermark.Int64)
+	analytics.PendingCount = int(pending.Int64)
+	analytics.ApprovedCount = int(approved.Int64)
+	analytics.RejectedCount = int(rejected.Int64)
+	analytics.AmazonReadyCount = int(amzReady.Int64)
+	analytics.ShopifyReadyCount = int(shopReady.Int64)
+	analytics.GoogleReadyCount = int(googReady.Int64)
+	analytics.AverageQualityScore = avgQuality.Float64
+
+	if analytics.TotalProducts > 0 {
+		analytics.ComplianceRate = (float64(analytics.CompliantCount) / float64(analytics.TotalProducts)) * 100
+	}
+
+	return analytics, nil
+}
+
 // BatchUpdateStatus changes publication status for multiple products in a batch.
 func (db *DB) BatchUpdateStatus(batchID string, fromStatus, toStatus domain.PublicationStatus) (int64, error) {
 	query := `

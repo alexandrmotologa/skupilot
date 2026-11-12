@@ -56,6 +56,37 @@ Response:
 ]
 ```
 
+#### `GET /api/batches/:id/analytics`
+Returns detailed compliance diagnostics, issues breakdown, and multi-channel launch readiness counts.
+Response:
+```json
+{
+  "batch_id": "batch_71fa82",
+  "total_products": 120,
+  "compliant_count": 114,
+  "warn_count": 6,
+  "fail_count": 0,
+  "compliance_rate": 95.0,
+  "average_quality_score": 94.2,
+  "non_white_bg_count": 6,
+  "low_resolution_count": 2,
+  "watermark_count": 0,
+  "amazon_ready_count": 114,
+  "shopify_ready_count": 114,
+  "google_ready_count": 120
+}
+```
+
+#### `POST /api/batches/:id/bulk-status`
+Updates publication status in mass for an array of product IDs.
+Request body:
+```json
+{
+  "product_ids": ["prod_01", "prod_02"],
+  "status": "APPROVED"
+}
+```
+
 #### `POST /api/batches/upload`
 Uploads a raw CSV, TSV, or JSON supplier feed and begins background ingestion.
 Request: `multipart/form-data`
@@ -142,6 +173,12 @@ Response:
 #### `GET /api/products/:id`
 Retrieves a single product with full audit details and history.
 
+#### `POST /api/products/:id/auto-fix-image`
+Remediates a non-compliant product image by whitening outer perimeter pixels to pure RGB 255 and padding onto a 1000x1000 square canvas. Recomputes quality scorecard.
+
+#### `GET /api/products/:id/copy-styles`
+Generates copy variants across Amazon A9, Shopify Editorial, and Google Shopping.
+
 #### `PATCH /api/products/:id`
 Updates product attributes, copy, or approval status.
 Request body:
@@ -158,6 +195,10 @@ Request body:
 ---
 
 ## 4. Channel Export Endpoints
+
+#### `GET /api/batches/:id/export/csv`
+Downloads the universal Master PIM Enriched CSV file containing all attributes and metrics.
+Content-Type: `text/csv`
 
 #### `POST /api/batches/:id/export/shopify`
 Generates and publishes products to Shopify Admin API.

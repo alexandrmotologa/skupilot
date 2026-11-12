@@ -1,17 +1,23 @@
 import React from 'react';
-import { Check, X, Eye, ShieldCheck, AlertCircle, Maximize2 } from 'lucide-react';
+import { Check, X, Eye, ShieldCheck, AlertCircle, Maximize2, Wand2 } from 'lucide-react';
 import { Product } from '../types';
 
 interface ProductCardProps {
   product: Product;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
   onInspect: (p: Product) => void;
   onUpdateStatus: (p: Product, status: 'APPROVED' | 'REJECTED') => void;
+  onAutoFixImage?: (p: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
+  isSelected,
+  onToggleSelect,
   onInspect,
   onUpdateStatus,
+  onAutoFixImage,
 }) => {
   const isApproved = product.publication_status === 'APPROVED';
   const isRejected = product.publication_status === 'REJECTED';
@@ -33,11 +39,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div
-      className={`group bg-slate-900 border ${complianceBorder} rounded-xl overflow-hidden flex flex-col justify-between transition duration-200 hover:shadow-xl hover:shadow-slate-950/50`}
+      className={`group bg-slate-900 border ${
+        isSelected ? 'border-sky-500 ring-2 ring-sky-500/30' : complianceBorder
+      } rounded-xl overflow-hidden flex flex-col justify-between transition duration-200 hover:shadow-xl hover:shadow-slate-950/50 relative`}
     >
       <div>
         {/* Image & Overlay Indicators */}
         <div className="relative aspect-square bg-slate-950 overflow-hidden flex items-center justify-center border-b border-slate-800/80">
+          {/* Checkbox Selector */}
+          {onToggleSelect && (
+            <div className="absolute top-2 left-2 z-30">
+              <input
+                type="checkbox"
+                checked={isSelected || false}
+                onChange={() => onToggleSelect(product.id)}
+                className="w-4 h-4 rounded bg-slate-900/90 border-slate-700 text-sky-500 focus:ring-0 cursor-pointer shadow-md"
+              />
+            </div>
+          )}
+
           {product.image_url ? (
             <img
               src={product.image_url}
@@ -45,8 +65,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               className="w-full h-full object-contain p-2 group-hover:scale-105 transition duration-300"
               loading="lazy"
               onError={(e) => {
-                // Fallback for broken images
-                (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23475569" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                (e.target as HTMLImageElement).src =
+                  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23475569" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
               }}
             />
           ) : (
@@ -57,7 +77,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
 
           {/* Top Compliance Floating Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+          <div className="absolute top-2 left-8 flex flex-col gap-1 z-10">
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-md border shadow-sm flex items-center gap-1 ${
                 product.image_compliance_status === 'PASS'
@@ -93,14 +113,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           </div>
 
-          {/* Quick inspect button hover overlay */}
-          <button
-            onClick={() => onInspect(product)}
-            className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 backdrop-blur-[2px] transition flex items-center justify-center gap-1.5 text-xs font-semibold text-white z-20"
-          >
-            <Eye className="w-4 h-4 text-sky-400" />
-            <span>Audit & Edit Listing</span>
-          </button>
+          {/* Quick inspect & autofix button hover overlay */}
+          <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 backdrop-blur-[2px] transition flex flex-col items-center justify-center gap-2 text-xs font-semibold text-white z-20">
+            <button
+              onClick={() => onInspect(product)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 transition shadow"
+            >
+              <Eye className="w-3.5 h-3.5 text-sky-400" />
+              <span>Audit & Edit</span>
+            </button>
+
+            {product.image_compliance_status !== 'PASS' && onAutoFixImage && (
+              <button
+                onClick={() => onAutoFixImage(product)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold transition shadow-lg shadow-sky-500/20"
+                title="Remediate background to pure white RGB 255 & pad 1000px"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>Auto-Fix Image</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content Body */}
@@ -187,3 +220,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </div>
   );
 };
+

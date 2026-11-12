@@ -15,6 +15,7 @@ import (
 	"github.com/alexandrmotologa/skupilot/internal/engine"
 	"github.com/alexandrmotologa/skupilot/internal/feed"
 	"github.com/alexandrmotologa/skupilot/internal/store"
+	"github.com/alexandrmotologa/skupilot/internal/vision"
 )
 
 // ServerEnv wraps shared dependencies for API route handlers.
@@ -287,6 +288,135 @@ func (env *ServerEnv) BatchApproveAllHandler(w http.ResponseWriter, r *http.Requ
 		"approved_count":   affected,
 		"message":          fmt.Sprintf("Approved %d pending products", affected),
 	})
+}
+
+// GetBatchAnalyticsHandler returns analytics and diagnostics for a batch.
+func (env *ServerEnv) GetBatchAnalyticsHandler(w http.ResponseWriter, r *http.Request) {
+	batchID := r.PathValue("id")
+	analytics, err := env.DB.GetBatchAnalytics(batchID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, analytics)
+}
+
+// BulkStatusHandler updates publication status for an array of product IDs.
+func (env *ServerEnv) BulkStatusHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ProductIDs []string                `json:"product_ids"`
+		Status     domain.PublicationStatus `json:"status"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid bulk request")
+		return
+	}
+
+	affected, err := env.DB.BulkUpdateProductStatus(req.ProductIDs, req.Status)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"affected_count": affected,
+		"status":         req.Status,
+	})
+}
+
+// AutoFixImageHandler applies AutoWhitenAndPad to remediate non-compliant product images.
+func (env *ServerEnv) AutoFixImageHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	p, err := env.DB.GetProduct(id)
+	if err != nil || p == nil {
+		writeError(w, http.StatusNotFound, "product not found")
+		return
+	}
+
+	if p.ImageURL == "" {
+		writeError(w, http.StatusBadRequest, "product has no image URL to fix")
+		return
+	}
+
+	// Fetch original image
+	_, img, err := vision.FetchAndAuditImage(r.Context(), nil, p.ImageURL)
+	if img == nil {
+		writeError(w, http.StatusBadRequest, "failed to download or decode product image")
+		return
+	}
+
+	// Apply Auto-Whiten & 1000x1000 square padding
+	_, fixedReport := vision.AutoWhitenAndPad(img, 1000)
+
+	// Update product metrics
+	p.ImageWidth = fixedReport.Width
+	p.ImageHeight = fixedReport.Height
+	p.ImageZoomReady = fixedReport.ZoomReady
+	p.ImageWhiteBGScore = fixedReport.WhiteBGScore
+	p.ImageAspectRatio = fixedReport.AspectRatio
+	p.ImageWatermarkDetected = fixedReport.WatermarkDetected
+	p.ImageComplianceStatus = fixedReport.Status
+
+	// Recalculate listing quality scorecard
+	scorecard := copywriter.CalculateQualityScorecard(p)
+	p.QualityScore = scorecard.TotalScore
+
+	if err := env.DB.UpdateProduct(p); err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed updating product: %v", err))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"product":    p,
+		"compliance": fixedReport,
+		"message":    "Image remediated to pure white RGB 255 and padded to 1000x1000px square",
+	})
+}
+
+// CopyStylesHandler generates and returns all 3 copy style variants for a product.
+func (env *ServerEnv) CopyStylesHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	p, err := env.DB.GetProduct(id)
+	if err != nil || p == nil {
+		writeError(w, http.StatusNotFound, "product not found")
+		return
+	}
+
+	raw := domain.RawFeedItem{
+		SKU:         p.RawSKU,
+		Title:       p.RawTitle,
+		Description: p.RawDescription,
+		Category:    p.RawCategory,
+		Brand:       p.Brand,
+		Price:       p.RawPrice,
+		Currency:    p.Currency,
+	}
+
+	styles := copywriter.GenerateAllStyles(raw, p.ExtractedAttributes)
+	writeJSON(w, http.StatusOK, styles)
+}
+
+// ExportCSVHandler generates and downloads the universal Enriched CSV.
+func (env *ServerEnv) ExportCSVHandler(w http.ResponseWriter, r *http.Request) {
+	batchID := r.PathValue("id")
+	products, _, err := env.DB.ListProducts(store.ProductFilter{BatchID: batchID, Limit: 2000})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	csvBytes, err := channels.GenerateEnrichedCSV(products)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	filename := fmt.Sprintf("skupilot_enriched_%s.csv", batchID)
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(csvBytes)
 }
 
 // ExportShopifyHandler publishes products to Shopify Admin API.
